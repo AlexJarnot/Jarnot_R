@@ -1,70 +1,29 @@
 RF08BL <- 1.3
-RF12BL <- 0.5
-RF13BL <- 1.0
-RF14BL <- 0.6
-RF15BL <- 0.75
-RF16BL <- 1.2
-RF23BL <- 1.0
-RF24BL <- 1.0
-
-
 
 #Set Geo Box Cutoff
 LatCutoff <- 34.28
 
 #Name data
 ARCTAS <- ARCTASPMF
-SARP <- SARPPMF
-WECAN <- WECANPMF
 
 #Filter Flights
 RF08 <- dplyr::filter(WECAN, FLIGHT == 8)
-RF12 <- dplyr::filter(ARCTAS, FLIGHT == 12)
-RF13 <- dplyr::filter(ARCTAS, FLIGHT == 13)
-RF14 <- dplyr::filter(ARCTAS, FLIGHT == 14)
-RF15 <- dplyr::filter(ARCTAS, FLIGHT == 15)
-RF16 <- dplyr::filter(ARCTAS, FLIGHT == 16)
-RF23 <- dplyr::filter(SARP, FLIGHT ==23)
-RF24 <- dplyr::filter(SARP, FLIGHT == 24)
 
 #Appending columns
 RF08$BLFlag <- ifelse(RF08$ALTP < RF08BL, 1, 0)
-RF12$BLFlag <- ifelse(RF12$ALTP < RF12BL, 1, 0)
-RF13$BLFlag <- ifelse(RF13$ALTP < RF13BL, 1, 0)
-RF14$BLFlag <- ifelse(RF14$ALTP < RF14BL, 1, 0)
-RF15$BLFlag <- ifelse(RF15$ALTP < RF15BL, 1, 0)
-RF16$BLFlag <- ifelse(RF16$ALTP < RF16BL, 1, 0)
-RF23$BLFlag <- ifelse(RF23$ALTP < RF23BL, 1, 0)
-RF24$BLFlag <- ifelse(RF24$ALTP < RF24BL, 1, 0)
-
-
 
 #Re-binding (row) data
 ARCTAS1s_Crop <- rbind(RF12, RF13, RF14, RF15, RF16)
-SARP1s_Crop <- rbind(RF23, RF24)
-WECAN1s_Crop <- RF08
 
 #Extra filters
 ARCTASInBL <- dplyr::filter(ARCTAS1s_Crop, BLFlag == 1)
-SARPInBL <- dplyr::filter(SARP1s_Crop, BLFlag == 1)
-WECANInBL <- dplyr::filter(WECAN1s_Crop, BLFlag == 1)
-
 
 ARCTASInBL$BoxFlag <- ifelse(point.in.polygon(ARCTASInBL$LONGITUDE, ARCTASInBL$LATITUDE, c(239, 236, 239.9, 244), c(41, 40, 34.5, 34.5)), 1, 0)
-SARPInBL$BoxFlag <- ifelse(point.in.polygon(SARPInBL$LONGITUDE, SARPInBL$LATITUDE, c(239, 236, 239.9, 244), c(41, 40, 34.5, 34.5)), 1, 0)
-WECANInBL$BoxFlag <- ifelse(point.in.polygon(WECANInBL$LONGITUDE, WECANInBL$LATITUDE, c(239, 236, 239.9, 244), c(41, 40, 34.5, 34.5)), 1, 0)
 
 ARCTASInBLInBox <- dplyr::filter(ARCTASInBL, BoxFlag == 1)
-SARPInBLInBox <- dplyr::filter(SARPInBL, BoxFlag == 1)
-WECANInBLInBox <- dplyr::filter(WECANInBL, BoxFlag == 1)
 
 #Load data
 ARCTASPMF <- as.data.frame(ARCTASInBLInBox)
-WECANPMF <- as.data.frame(WECANInBLInBox)
-SARPNPMF <- as.data.frame(dplyr::filter(SARPInBL, BoxFlag == 1))
-SARPSPMF <- as.data.frame(dplyr::filter(SARPInBL, BoxFlag == 0))
-
-SARPPMF <- as.data.frame(SARPInBLInBox)
 
 #Replace assorted ULODs and NAs
 llod <- -888
@@ -101,8 +60,6 @@ SARPSPMF[SARPSPMF == "-999999"] <- "-999"
 SARPPMF[SARPPMF == "-999999"] <- "-999"
 
 write.csv(ARCTASPMF, "ARCTASPMF.csv")
-write.csv(SARPPMF, "SARPPMF.csv")
-write.csv(WECANPMF, "WECANPMF.csv")
 
 #Load PMFInputMiddle.RData
 SARPPMF <- read_excel("PMFMiddleInput.xlsx", sheet = "SARP")
@@ -114,19 +71,7 @@ TOGAWECANUnc <- read_excel("PMFMiddleInput.xlsx", sheet = "TOGAWECAN")
 
 #Remove NA rows
 #ARCTAS
-lista <- c()
-for(i in 1:nrow(ARCTASPMF)){
-  if(sum(is.na(ARCTASPMF[i,])) == (ncol(ARCTASPMF) - 1)){
-    lista = append(lista, ARCTASPMF[i,1], after = length(lista))
-  } else {NULL}
-}
-ARCTAS_Trim <- ARCTASPMF[ ! ARCTASPMF$INDEX %in% lista, ]
-
-
-#Remade for ULOD values
-
 Headercols <- 12
-
 lista <- c()
 for(i in 1:nrow(ARCTASPMF)){
   if(length(which((ARCTASPMF[i,]) == -999)) == (ncol(ARCTASPMF) - Headercols)){
@@ -136,106 +81,14 @@ for(i in 1:nrow(ARCTASPMF)){
 ARCTAS_Trim <- ARCTASPMF[ ! ARCTASPMF$INDEX %in% lista, ]
 #
 
-#WECAN
-listb <- c()
-for(i in 1:nrow(WECANPMF)){
-  if(sum(is.na(WECANPMF[i,])) == (ncol(WECANPMF) - 1)){
-    listb = append(listb, WECANPMF[i,1], after = length(listb))
-  } else {NULL}
-}
-WECAN_Trim <- WECANPMF[ ! WECANPMF$INDEX %in% listb, ]
-#
-
-Headercols <- 11
-
-listb <- c()
-for(i in 1:nrow(WECANPMF)){
-  if(length(which((WECANPMF[i,]) == -999)) == (ncol(WECANPMF) - Headercols)){
-    listb = append(listb, WECANPMF[i,5], after = length(listb))
-  } else {NULL}
-}
-WECAN_Trim <- WECANPMF[ ! WECANPMF$INDEX %in% listb, ]
-#
-
-
-#SARPN
-listc <- c()
-for(i in 1:nrow(SARPNPMF)){
-  if(sum(is.na(SARPNPMF[i,])) == (ncol(SARPNPMF) - 1)){
-    listc = append(listc, SARPNPMF[i,1], after = length(listc))
-  } else {NULL}
-}
-SARPN_Trim <- SARPNPMF[ ! SARPNPMF$Index %in% listc, ]
-#
-
-Headercols <- 11
-
-listc <- c()
-for(i in 1:nrow(SARPNPMF)){
-  if(length(which((SARPNPMF[i,]) == -999)) == (ncol(SARPNPMF) - Headercols)){
-    listc = append(listc, SARPNPMF[i,5], after = length(listc))
-  } else {NULL}
-}
-SARPN_Trim <- SARPNPMF[ ! SARPNPMF$INDEX %in% listc, ]
-#
-
-#SARPS
-listd <- c()
-for(i in 1:nrow(SARPSPMF)){
-  if(sum(is.na(SARPSPMF[i,])) == (ncol(SARPSPMF) - 1)){
-    listd = append(listd, SARPSPMF[i,5], after = length(listd))
-  } else {NULL}
-}
-SARPS_Trim <- SARPSPMF[ ! SARPSPMF$Index %in% listd, ]
-#
-
-Headercols <- 11
-
-listd <- c()
-for(i in 1:nrow(SARPSPMF)){
-  if(length(which((SARPSPMF[i,]) == -999)) == (ncol(SARPSPMF) - Headercols)){
-    listd = append(listd, SARPSPMF[i,5], after = length(listd))
-  } else {NULL}
-}
-SARPS_Trim <- SARPSPMF[ ! SARPSPMF$INDEX %in% listd, ]
-#
-
-Headercols <- 11
-
-listd <- c()
-for(i in 1:nrow(SARPPMF)){
-  if(length(which((SARPPMF[i,]) == -999)) == (ncol(SARPPMF) - Headercols)){
-    listd = append(listd, SARPPMF[i,5], after = length(listd))
-  } else {NULL}
-}
-SARP_Trim <- SARPPMF[ ! SARPPMF$INDEX %in% listd, ]
-#
-
-
 #Count NAs in columns
 ARCTAS_Trim <- as.data.frame(ARCTASPMF)
-WECAN_Trim <- as.data.frame(WECANPMF)
-SARP_Trim <- as.data.frame(SARPPMF)
 
 perc <- 0.25
 ARCTASCutoff <- nrow(ARCTAS_Trim) * perc
-WECANCutoff <- nrow(WECAN_Trim) * perc
-SARPNCutoff <- nrow(SARPN_Trim) * perc
-SARPSCutoff <- nrow(SARPS_Trim) * perc
-
-SARPCutoff <- nrow(SARP_Trim) * perc
 
 #Cut out bad columns
 #ARCTAS
-listaa <- c()
-ARCTAS_Trim[nrow(ARCTAS_Trim) + 1,] = c(1:ncol(ARCTAS_Trim))
-for(i in 1:ncol(ARCTAS_Trim)){
-  if(sum(is.na(ARCTAS_Trim[,i])) > ARCTASCutoff){
-    listaa = append(listaa, ARCTAS_Trim[nrow(ARCTAS_Trim),i], after = length(listaa))
-  } else {NULL}
-}
-ARCTAS_Final <- ARCTAS_Trim[ ! ARCTAS_Trim[nrow(ARCTAS_Trim),] %in% listaa]
-#
 listaa <- c()
 for(i in 1:ncol(ARCTAS_Trim)){
   if((length(which(ARCTAS_Trim[,i] == -999 | ARCTAS_Trim[,i] == -888))) > ARCTASCutoff){
@@ -243,109 +96,8 @@ for(i in 1:ncol(ARCTAS_Trim)){
   } else {NULL}
 }
 ARCTAS_Final <- ARCTAS_Trim[ ! ARCTAS_Trim[nrow(ARCTAS_Trim),] %in% listaa]
-#
-
-#WECAN
-listbb <- c()
-WECAN_Trim[nrow(WECAN_Trim) + 1,] = c(1:ncol(WECAN_Trim))
-for(i in 1:nrow(WECANPMF)){
-  if(sum(is.na(WECANPMF[i,])) > WECANCutoff){
-    listbb = append(listbb, WECAN_Trim[nrow(WECAN_Trim),i], after = length(listbb))
-  } else {NULL}
-}
-WECAN_Final <- WECAN_Trim[ ! WECAN_Trim[nrow(WECAN_Trim),] %in% listbb]
-#
-listbb <- c()
-for(i in 1:ncol(WECAN_Trim)){
-  if((length(which(WECAN_Trim[,i] == -999 | WECAN_Trim[,i] == -888))) > WECANCutoff){
-    listbb = append(listbb, i, after = length(listbb))
-  } else {NULL}
-}
-WECAN_Final <- WECAN_Trim[ ! WECAN_Trim[nrow(WECAN_Trim),] %in% listbb]
-#
-
-#SARPN
-listcc <- c()
-SARPN_Trim[nrow(SARPN_Trim) + 1,] = c(1:ncol(SARPN_Trim))
-for(i in 1:nrow(SARPNPMF)){
-  if(sum(is.na(SARPNPMF[i,])) > SARPNCutoff){
-    listcc = append(listcc, SARPN_Trim[nrow(SARPN_Trim),i], after = length(listcc))
-  } else {NULL}
-}
-SARPN_Final <- SARPN_Trim[ ! SARPN_Trim[nrow(SARPN_Trim),] %in% listcc]
-#
-listcc <- c()
-SARPN_Trim[nrow(SARPN_Trim) + 1,] = c(1:ncol(SARPN_Trim))
-for(i in 1:ncol(SARPN_Trim)){
-  if((sum(SARPN_Trim[,i] == -999 | SARPN_Trim[,i] == -888)) > SARPNCutoff){
-    listcc = append(listcc, SARPN_Trim[nrow(SARPN_Trim),i], after = length(listcc))
-  } else {NULL}
-}
-SARPN_Final <- SARPN_Trim[ ! SARPN_Trim[nrow(SARPN_Trim),] %in% listcc]
-#
-
-#SARPS
-listdd <- c()
-SARPS_Trim[nrow(SARPS_Trim) + 1,] = c(1:ncol(SARPS_Trim))
-for(i in 1:nrow(SARPSPMF)){
-  if(sum(is.na(SARPSPMF[i,])) > SARPSCutoff){
-    listdd = append(listdd, SARPS_Trim[nrow(SARPS_Trim),i], after = length(listdd))
-  } else {NULL}
-}
-SARPS_Final <- SARPS_Trim[ ! SARPS_Trim[nrow(SARPS_Trim),] %in% listdd]
-#
-listdd <- c()
-SARPS_Trim[nrow(SARPS_Trim) + 1,] = c(1:ncol(SARPS_Trim))
-for(i in 1:ncol(SARPS_Trim)){
-  if((sum(SARPS_Trim[,i] == -999 | SARPS_Trim[,i] == -888)) > SARPSCutoff){
-    listdd = append(listdd, SARPS_Trim[nrow(SARPS_Trim),i], after = length(listdd))
-  } else {NULL}
-}
-SARPS_Final <- SARPS_Trim[ ! SARPS_Trim[nrow(SARPS_Trim),] %in% listdd]
-#
-
-listdd <- c()
-for(i in 1:ncol(SARP_Trim)){
-  if((length(which(SARP_Trim[,i] == -999 | SARP_Trim[,i] == -888))) > SARPCutoff){
-    listdd = append(listdd, i, after = length(listdd))
-  } else {NULL}
-}
-SARP_Final <- SARP_Trim[-listdd]
-#
-
 
 write.csv(ARCTAS_Final, "ARCTASPMF.csv")
-write.csv(SARPN_Final, "SARPNPMF.csv")
-write.csv(SARPS_Final, "SARPSPMF.csv")
-write.csv(WECAN_Final, "WECANPMF.csv")
-
-write.csv(SARP_Final, "SARPPMF.csv")
-
-#Remove rows containing NA
-ARCTAS_FinalCut <- ARCTAS_Final
-WECAN_FinalCut <- WECAN_Final
-SARPN_FinalCut <- SARPN_Final
-SARPS_FinalCut <- SARPS_Final
-
-ARCTAS_FinalCut[ARCTAS_FinalCut == -999999999 | ARCTAS_FinalCut == -888888888] <- NA
-WECAN_FinalCut[WECAN_FinalCut == -9999999 | WECAN_FinalCut == -8888888] <- NA
-SARPN_FinalCut[SARPN_FinalCut == -999999 | SARPN_FinalCut == -888888] <- NA
-SARPS_FinalCut[SARPS_FinalCut == -999999 | SARPS_FinalCut == -888888] <- NA
-
-ARCTAS_SuperCut <- ARCTAS_FinalCut[complete.cases(ARCTAS_FinalCut), ]
-WECAN_SuperCut <- WECAN_FinalCut[complete.cases(WECAN_FinalCut), ]
-SARPN_SuperCut <- SARPN_FinalCut[complete.cases(SARPN_FinalCut), ]
-SARPS_SuperCut <- SARPS_FinalCut[complete.cases(SARPS_FinalCut), ]
-
-write.csv(ARCTAS_SuperCut, "ARCTASPMFSupercut.csv")
-write.csv(WECAN_SuperCut, "WECANPMFSupercut.csv")
-write.csv(SARPN_SuperCut, "SARPNPMFSupercut.csv")
-write.csv(SARPS_SuperCut, "SARPSPMFSupercut.csv")
-
-
-
-
-
 
 #Record and replace ULODs
 SARPMod <- read_excel("PMFFinalModInput.xlsx", sheet = "SARPMod")
@@ -356,12 +108,6 @@ TOGAARCTASUnc <- read_excel("PMFFinalModInput.xlsx", sheet = "TOGAARCTAS")
 TOGAWECANUnc <- read_excel("PMFFinalModInput.xlsx", sheet = "TOGAWECAN")
 
 ARCTAS_Final <- as.data.frame(ARCTAS_Trim)
-WECAN_Final <- as.data.frame(WECAN_Trim)
-SARPN_Final <- as.data.frame(SARPNMod)
-SARPS_Final <- as.data.frame(SARPSMod)
-
-SARP_Final <- as.data.frame(SARP_Trim)
-
 
 #ARCTAS
 aaa <- ARCTAS_Final
@@ -370,63 +116,14 @@ aaa[aaa == -999] <- 1
 aaa[aaa == -888] <- 2
 #
 
-#WECAN
-bbb <- WECAN_Final
-bbb[bbb != -999 & bbb != -888] <- 0
-bbb[bbb == -999] <- 1
-bbb[bbb == -888] <- 2
-#
-
-#SARPN
-ccc <- SARPN_Final
-ccc[ccc != -999 & ccc != -888] <- 0
-ccc[ccc == -999] <- 1
-ccc[ccc == -888] <- 2
-#
-
-#SARPS
-ddd <- SARPS_Final
-ddd[ddd != -999 & ddd != -888] <- 0
-ddd[ddd == -999] <- 1
-ddd[ddd == -888] <- 2
-#
-
-#SARP
-ddd <- SARP_Final
-ddd[ddd != -999 & ddd != -888] <- 0
-ddd[ddd == -999] <- 1
-ddd[ddd == -888] <- 2
-#
-
 #Replace LLODs, etc. with average value using supercut
 for (i in 1:ncol(ARCTAS_FinalCut)){
   ARCTAS_FinalCut[is.na(ARCTAS_FinalCut[,i]), i] <- mean(ARCTAS_FinalCut[,i], na.rm = TRUE)
 }
 
-for (i in 1:ncol(WECAN_FinalCut)){
-  WECAN_FinalCut[is.na(WECAN_FinalCut[,i]), i] <- mean(WECAN_FinalCut[,i], na.rm = TRUE)
-}
-
-for (i in 1:ncol(SARPN_FinalCut)){
-  SARPN_FinalCut[is.na(SARPN_FinalCut[,i]), i] <- mean(SARPN_FinalCut[,i], na.rm = TRUE)
-}
-
-for (i in 1:ncol(SARPS_FinalCut)){
-  SARPS_FinalCut[is.na(SARPS_FinalCut[,i]), i] <- mean(SARPS_FinalCut[,i], na.rm = TRUE)
-}
-
 #Create Unc file
 ARCTAS_FinalNA <- ARCTAS_Final
 ARCTAS_FinalNA[ARCTAS_FinalNA == -888 | ARCTAS_FinalNA == -999] <- NA
-WECAN_FinalNA <- WECAN_Final
-WECAN_FinalNA[WECAN_FinalNA == -888 | WECAN_FinalNA == -999] <- NA
-SARPN_FinalNA <- SARPN_Final
-SARPN_FinalNA[SARPN_FinalNA == -888 | SARPN_FinalNA == -999] <- NA
-SARPS_FinalNA <- SARPS_Final
-SARPS_FinalNA[SARPS_FinalNA == -888 | SARPS_FinalNA == -999] <- NA
-
-SARP_FinalNA <- SARP_Final
-SARP_FinalNA[SARP_FinalNA == -888 | SARP_FinalNA == -999] <- NA
 
 TOGAWECANUncDrop <- as.data.frame(TOGAWECANUnc[,-1])
 TOGAARCTASUncDrop <- as.data.frame(TOGAARCTASUnc[,-1])
@@ -456,106 +153,6 @@ for(j in 1:nrow(ARCTAS_Unc))
     }
   }
 }
-
-
-#WECAN
-WECAN_Unc <- as.data.frame(WECAN_Final)
-
-for(j in 1:nrow(WECAN_Unc))
-{
-  for(k in 1:ncol(WECAN_Unc))
-  {
-    if (bbb[j, k] == 0) {
-      u <- TOGAWECANUncDrop[2, which(colnames(TOGAWECANUncDrop) == (colnames(WECAN_Final)[k]))]
-      WECAN_Unc[j, k] <- ((u / 100) * WECAN_Final[j, k])
-    }
-    else if (bbb[j, k] == 1) {
-      u <- TOGAWECANUncDrop[2, which(colnames(TOGAWECANUncDrop) == (colnames(WECAN_Final)[k]))]
-      WECAN_Final[j, k] <- (colMeans(WECAN_FinalNA[,k, drop = FALSE], na.rm = TRUE))
-      WECAN_Unc[j, k] <- (4.0 * ((u / 100) * WECAN_Final[j, k]))
-    }
-    else if (bbb[j, k] == 2) {
-      u <- TOGAWECANUncDrop[1, which(colnames(TOGAWECANUncDrop) == (colnames(WECAN_Final)[3]))]
-      WECAN_Final[j, k] <- (0.5 * u)
-      WECAN_Unc[j, k] <- ((5/6) * u)
-    }
-  }
-}
-
-
-#SARPN
-SARPN_Unc <- as.data.frame(SARPN_Final)
-
-for(j in 1:nrow(SARPN_Unc))
-{
-  for(k in 1:ncol(SARPN_Unc))
-  {
-    if (ccc[j, k] == 0) {
-      u <- WASUncDrop[2, which(colnames(WASUncDrop) == (colnames(SARPN_Final)[k]))]
-      SARPN_Unc[j, k] <- ((u / 100) * SARPN_Final[j, k])
-    }
-    else if (ccc[j, k] == 1) {
-      u <- WASUncDrop[2, which(colnames(WASUncDrop) == (colnames(SARPN_Final)[k]))]
-      SARPN_Final[j, k] <- (colMeans(SARPN_FinalNA[,k, drop = FALSE], na.rm = TRUE))
-      SARPN_Unc[j, k] <- (25.0 * ((u / 100) * SARPN_Final[j, k]))
-    }
-    else if (ccc[j, k] == 2) {
-      u <- WASUncDrop[1, which(colnames(WASUncDrop) == (colnames(SARPN_Final)[k]))]
-      SARPN_Final[j, k] <- (0.5 * u)
-      SARPN_Unc[j, k] <- ((5/6) * u)
-    }
-  }
-}
-
-
-#SARPS
-SARPS_Unc <- as.data.frame(SARPS_Final)
-
-for(j in 1:nrow(SARPS_Unc))
-{
-  for(k in 1:ncol(SARPS_Unc))
-  {
-    if (ddd[j, k] == 0) {
-      u <- WASUncDrop[2, which(colnames(WASUncDrop) == (colnames(SARPS_Final)[k]))]
-      SARPS_Unc[j, k] <- ((u / 100) * SARPS_Final[j, k])
-    }
-    else if (ddd[j, k] == 1) {
-      u <- WASUncDrop[2, which(colnames(WASUncDrop) == (colnames(SARPS_Final)[k]))]
-      SARPS_Final[j, k] <- (colMeans(SARPS_FinalNA[,k, drop = FALSE], na.rm = TRUE))
-      SARPS_Unc[j, k] <- (25.0 * ((u / 100) * SARPS_Final[j, k]))
-    }
-    else if (ddd[j, k] == 2) {
-      u <- WASUncDrop[1, which(colnames(WASUncDrop) == (colnames(SARPS_Final)[k]))]
-      SARPS_Final[j, k] <- (0.5 * u)
-      SARPS_Unc[j, k] <- ((5/6) * u)
-    }
-  }
-}
-
-#SARP
-SARP_Unc <- as.data.frame(SARP_Final)
-
-for(j in 1:nrow(SARP_Unc))
-{
-  for(k in 1:ncol(SARP_Unc))
-  {
-    if (ddd[j, k] == 0) {
-      u <- WASUncDrop[2, which(colnames(WASUncDrop) == (colnames(SARP_Final)[k]))]
-      SARP_Unc[j, k] <- ((u / 100) * SARP_Final[j, k])
-    }
-    else if (ddd[j, k] == 1) {
-      u <- WASUncDrop[2, which(colnames(WASUncDrop) == (colnames(SARP_Final)[k]))]
-      SARP_Final[j, k] <- (colMeans(SARP_FinalNA[,k, drop = FALSE], na.rm = TRUE))
-      SARP_Unc[j, k] <- (25.0 * ((u / 100) * SARP_Final[j, k]))
-    }
-    else if (ddd[j, k] == 2) {
-      u <- WASUncDrop[1, which(colnames(WASUncDrop) == (colnames(SARP_Final)[k]))]
-      SARP_Final[j, k] <- (0.5 * u)
-      SARP_Unc[j, k] <- ((5/6) * u)
-    }
-  }
-}
-
 
 #Save data in excel file
 sheets <- list("ARCTAS" = ARCTAS_Final, 
